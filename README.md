@@ -33,6 +33,10 @@ flutter test
 ```
 flutter analyze
 ```
+- Format all Dart files:
+```
+dart format .
+```
 - Build for release:
 ```
 flutter build apk
@@ -42,6 +46,52 @@ flutter build ios
 ```
 ```
 flutter build web
+```
+
+## Git Hook Automation (No Husky)
+This project includes a native Git pre-commit hook at `.githooks/pre-commit`.
+
+What it does on each commit:
+- Formats staged `.dart` files with `dart format`
+- Re-stages formatted files automatically
+
+What it does on each push:
+- Runs `flutter test` before pushing
+
+One-time setup per clone (PowerShell on Windows):
+```
+./scripts/setup-git-hooks.ps1
+```
+
+Alternative setup (any shell):
+```
+git config core.hooksPath .githooks
+```
+
+Optional behavior:
+- Skip all hook logic for one commit:
+```
+SKIP_FLUTTER_HOOKS=1 git commit -m "your message"
+```
+PowerShell:
+```
+$env:SKIP_FLUTTER_HOOKS=1; git commit -m "your message"; Remove-Item Env:SKIP_FLUTTER_HOOKS
+```
+- Skip all hook logic for one push:
+```
+SKIP_FLUTTER_HOOKS=1 git push
+```
+PowerShell:
+```
+$env:SKIP_FLUTTER_HOOKS=1; git push; Remove-Item Env:SKIP_FLUTTER_HOOKS
+```
+- Also run analyze during commit:
+```
+RUN_FLUTTER_ANALYZE=1 git commit -m "your message"
+```
+PowerShell:
+```
+$env:RUN_FLUTTER_ANALYZE=1; git commit -m "your message"; Remove-Item Env:RUN_FLUTTER_ANALYZE
 ```
 
 ## Project Structure
