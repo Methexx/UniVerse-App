@@ -3,7 +3,7 @@
 > Universe Platform — AI-Powered University Communication System
 > Last Updated: March 2026
 
----
+--- 
 
 ## Quick Reference
 
