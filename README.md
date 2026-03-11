@@ -6,7 +6,7 @@ Universe App is a cross-platform Flutter application. This repository contains t
 - Fast cross-platform UI built with Flutter.
 - Shared code across Android, iOS, web, macOS, Windows, and Linux.
 - Clean project structure and standard Flutter tooling.
-
+ 
 ## Requirements
 - Flutter SDK (compatible with Dart `^3.10.1`)
 - Platform-specific toolchains:
