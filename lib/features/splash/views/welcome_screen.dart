@@ -31,7 +31,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       imagePath: 'Assets/welcome1.png',
       title: 'Find various courses on\nOur platform',
       subtitle:
-          'Courses that are different from the others that\nyou will find only with us',
+          'Courses that are different from the others that you will find only with us',
     ),
     OnboardingData(
       imagePath: 'Assets/welcome2.png',
@@ -44,13 +44,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       subtitle: 'Earn certificates to boost your career\nand stay ahead',
     ),
   ];
-  
+
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _startAutoPlay();
+  }
+
+  void _stopAutoPlay() {
+    if (_timer != null && _timer!.isActive) {
+      _timer!.cancel();
+    }
   }
 
   void _startAutoPlay() {
@@ -105,73 +111,97 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 const SizedBox(height: 50),
               ],
             ),
-            PageView.builder(
-              controller: _pageController,
-              itemCount: _pages.length,
-              onPageChanged: (int index) {
-                setState(() {
-                  _currentPage = index;
-                });
-              },
-              itemBuilder: (context, index) {
-                return Column(
-                  children: <Widget>[
-                    Expanded(
-                      child: Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: Image.asset(
-                              _pages[index].imagePath,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                            ),
-                          ),
-                          if (_pages[index].imagePath == 'Assets/welcome2.png')
-                            Positioned(
-                              bottom: 24,
-                              child: Image.asset(
-                                'Assets/logo.png',
-                                height: 40,
-                                fit: BoxFit.contain,
+            Listener(
+              onPointerDown: (_) => _stopAutoPlay(),
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _pages.length,
+                onPageChanged: (int index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  return Column(
+                    children: <Widget>[
+                      Expanded(
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: _pages[index].imagePath == 'Assets/welcome2.png' ? 84.0 : 0.0,
+                                ),
+                                child: Image.asset(
+                                  _pages[index].imagePath,
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.topCenter,
+                                ),
                               ),
                             ),
-                        ],
+                            if (_pages[index].imagePath ==
+                                'Assets/welcome2.png')
+                              Positioned(
+                                bottom: 42,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Image.asset(
+                                    'Assets/logo.png',
+                                    height: 84,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Container(
-                      width: 350,
-                      height: 320,
-                      padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
-                      child: Column(
-                        children: <Widget>[
-                          Text(
-                            _pages[index].title,
-                            textAlign: TextAlign.center,
-                            style: textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF101820),
-                              height: 1.2,
+                      Container(
+                        width: 350,
+                        height: 320,
+                        padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
+                        child: Column(
+                          children: <Widget>[
+                            Text(
+                              _pages[index].title,
+                              textAlign: TextAlign.center,
+                              style: textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF101820),
+                                height: 1.2,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _pages[index].subtitle,
-                            textAlign: TextAlign.center,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFFA7BFC6),
-                              height: 1.5,
-                              fontWeight: FontWeight.w500,
+                            const SizedBox(height: 16),
+                            Text(
+                              _pages[index].subtitle,
+                              textAlign: TextAlign.center,
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFFA7BFC6),
+                                height: 1.5,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 50),
-                  ],
-                );
-              },
+                      const SizedBox(height: 50),
+                    ],
+                  );
+                },
+              ),
             ),
             Positioned(
               bottom: 334,
@@ -182,8 +212,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   (index) => Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: 40,
+                      duration: const Duration(milliseconds: 500),
+                      width: 80, // Increased indicator width
                       height: 4,
                       decoration: BoxDecoration(
                         color: _currentPage == index
