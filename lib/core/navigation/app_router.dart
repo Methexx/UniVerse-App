@@ -1,0 +1,30 @@
+import 'package:go_router/go_router.dart';
+import 'package:universe_app/core/constants/app_routes.dart';
+import 'package:universe_app/features/auth/views/login_screen.dart';
+import 'package:universe_app/features/dashboard/views/dashboard_screen.dart';
+import 'package:universe_app/features/splash/views/splash_screen.dart';
+import 'package:universe_app/features/splash/views/welcome_screen.dart';
+
+class AppRouter {
+  static final GoRouter router = GoRouter(
+    initialLocation: AppRoutes.splash,
+    routes: <RouteBase>[
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.welcome,
+        builder: (context, state) => const WelcomeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboard,
+        builder: (context, state) => const DashboardScreen(),
+      ),
+    ],
+  );
+}
