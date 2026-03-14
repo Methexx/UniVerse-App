@@ -4,6 +4,7 @@ import 'package:universe_app/features/auth/views/login_screen.dart';
 import 'package:universe_app/features/dashboard/views/dashboard_screen.dart';
 import 'package:universe_app/features/splash/views/splash_screen.dart';
 import 'package:universe_app/features/splash/views/welcome_screen.dart';
+import 'package:universe_app/features/auth/views/register_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -20,6 +21,10 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
         path: AppRoutes.dashboard,

@@ -227,7 +227,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
             ),
             Positioned(
-              bottom: 90,
+              bottom: 110,
               child: Container(
                 width: 302,
                 height: 56,
@@ -256,6 +256,35 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   child: const Text(
                     'Login',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 65,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => context.go(AppRoutes.register),
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Dont have an account ? ',
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      children: const <TextSpan>[
+                        TextSpan(
+                          text: 'Create one',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
