@@ -1,19 +1,18 @@
 # 08 — Flutter App Structure
 
-## Overview
-
-The Flutter mobile app serves students exclusively and follows the MVVM (Model-View-ViewModel) architecture pattern. Feature-based folder structure ensures clean separation of concerns.
+> School Connect — Parent Flutter Mobile App (iOS & Android)
+> Architecture: MVVM (Model-View-ViewModel)
 
 ---
 
 ## Architecture: MVVM
 
 ```
-Model      → Data classes, API response types
-View       → UI screens and widgets
-ViewModel  → Business logic, state management
-Service    → API calls, external integrations
-Repository → Data access layer (abstracts services)
+Model       → Data classes, API response types
+View        → UI screens and widgets (StatelessWidget / ConsumerWidget)
+ViewModel   → Business logic, state management (ChangeNotifier / Riverpod)
+Service     → API calls, external integrations (Dio HTTP client)
+Repository  → Data access layer (abstracts service calls)
 ```
 
 ---
@@ -21,78 +20,85 @@ Repository → Data access layer (abstracts services)
 ## Full Folder Structure
 
 ```
-universe-flutter/
+school-connect-flutter/
 ├── lib/
 │   ├── core/
 │   │   ├── api/
-│   │   │   ├── api_client.dart          ← HTTP client (Dio)
-│   │   │   └── api_endpoints.dart       ← All endpoint constants
+│   │   │   ├── api_client.dart           ← Dio HTTP client + interceptors
+│   │   │   └── api_endpoints.dart        ← All API endpoint constants
 │   │   ├── constants/
-│   │   │   ├── app_colors.dart          ← 5 theme colors
-│   │   │   ├── app_strings.dart         ← All text strings
-│   │   │   └── app_routes.dart          ← Route names
+│   │   │   ├── app_colors.dart           ← 5 theme color palettes
+│   │   │   ├── app_strings.dart          ← All UI text strings
+│   │   │   └── app_routes.dart           ← Route name constants
 │   │   ├── storage/
-│   │   │   ├── secure_storage.dart      ← JWT token storage
-│   │   │   └── local_storage.dart       ← Theme, AI chat history
+│   │   │   ├── secure_storage.dart       ← JWT token (flutter_secure_storage)
+│   │   │   └── local_storage.dart        ← Theme, biometric flag (SharedPreferences)
+│   │   ├── services/
+│   │   │   ├── fcm_service.dart          ← Firebase FCM token + foreground handler
+│   │   │   └── supabase_realtime.dart    ← Realtime channel subscriptions
 │   │   └── utils/
+│   │       ├── date_helpers.dart
 │   │       ├── validators.dart
-│   │       └── helpers.dart
+│   │       └── grade_helpers.dart        ← Letter grade display colours
 │   │
 │   ├── features/
+│   │   │
 │   │   ├── auth/
 │   │   │   ├── models/
 │   │   │   │   └── user_model.dart
 │   │   │   ├── views/
+│   │   │   │   ├── splash_screen.dart
 │   │   │   │   ├── login_screen.dart
 │   │   │   │   ├── register_screen.dart
-│   │   │   │   └── otp_screen.dart
+│   │   │   │   ├── otp_screen.dart
+│   │   │   │   ├── link_child_screen.dart      ← Enter Student ID
+│   │   │   │   └── confirm_child_screen.dart   ← "Is this your child?"
 │   │   │   ├── viewmodels/
 │   │   │   │   └── auth_viewmodel.dart
-│   │   │   ├── services/
-│   │   │   │   └── auth_service.dart
 │   │   │   └── repositories/
 │   │   │       └── auth_repository.dart
 │   │   │
-│   │   ├── academic_profile/
-│   │   │   ├── models/
-│   │   │   │   └── academic_profile_model.dart
+│   │   ├── home/
 │   │   │   ├── views/
-│   │   │   │   └── academic_setup_screen.dart
-│   │   │   ├── viewmodels/
-│   │   │   │   └── academic_viewmodel.dart
-│   │   │   └── repositories/
-│   │   │       └── academic_repository.dart
-│   │   │
-│   │   ├── dashboard/
-│   │   │   ├── views/
-│   │   │   │   └── dashboard_screen.dart
+│   │   │   │   ├── home_screen.dart             ← Announcements feed + quick stats
+│   │   │   │   └── child_switcher_widget.dart   ← Multi-child header switcher
 │   │   │   └── viewmodels/
-│   │   │       └── dashboard_viewmodel.dart
+│   │   │       └── home_viewmodel.dart
 │   │   │
-│   │   ├── questions/
+│   │   ├── gate/
 │   │   │   ├── models/
-│   │   │   │   ├── question_model.dart
-│   │   │   │   └── answer_model.dart
+│   │   │   │   └── gate_event_model.dart
 │   │   │   ├── views/
-│   │   │   │   ├── questions_screen.dart
-│   │   │   │   ├── ask_question_screen.dart
-│   │   │   │   └── question_detail_screen.dart
-│   │   │   ├── viewmodels/
-│   │   │   │   └── questions_viewmodel.dart
-│   │   │   └── repositories/
-│   │   │       └── questions_repository.dart
+│   │   │   │   └── gate_log_screen.dart         ← IN/OUT history per day
+│   │   │   └── viewmodels/
+│   │   │       └── gate_viewmodel.dart
 │   │   │
 │   │   ├── attendance/
 │   │   │   ├── models/
 │   │   │   │   └── attendance_model.dart
 │   │   │   ├── views/
-│   │   │   │   ├── attendance_screen.dart
-│   │   │   │   ├── qr_scanner_screen.dart
-│   │   │   │   └── attendance_history_screen.dart
-│   │   │   ├── viewmodels/
-│   │   │   │   └── attendance_viewmodel.dart
-│   │   │   └── repositories/
-│   │   │       └── attendance_repository.dart
+│   │   │   │   ├── attendance_screen.dart        ← History + summary
+│   │   │   │   └── excuse_note_screen.dart       ← Submit excuse for absence
+│   │   │   └── viewmodels/
+│   │   │       └── attendance_viewmodel.dart
+│   │   │
+│   │   ├── messages/
+│   │   │   ├── models/
+│   │   │   │   └── message_model.dart
+│   │   │   ├── views/
+│   │   │   │   ├── messages_screen.dart          ← Inbox / thread list
+│   │   │   │   └── message_thread_screen.dart    ← Individual thread
+│   │   │   └── viewmodels/
+│   │   │       └── messages_viewmodel.dart
+│   │   │
+│   │   ├── ai_bot/
+│   │   │   ├── models/
+│   │   │   │   └── rag_message_model.dart
+│   │   │   ├── views/
+│   │   │   │   ├── ai_bot_screen.dart            ← Chat with policy bot
+│   │   │   │   └── public_qa_screen.dart         ← Browse past Q&A
+│   │   │   └── viewmodels/
+│   │   │       └── ai_bot_viewmodel.dart
 │   │   │
 │   │   ├── announcements/
 │   │   │   ├── models/
@@ -106,52 +112,56 @@ universe-flutter/
 │   │   │   ├── models/
 │   │   │   │   └── complaint_model.dart
 │   │   │   ├── views/
-│   │   │   │   ├── complaints_screen.dart
-│   │   │   │   └── submit_complaint_screen.dart
-│   │   │   ├── viewmodels/
-│   │   │   │   └── complaints_viewmodel.dart
-│   │   │   └── repositories/
-│   │   │       └── complaints_repository.dart
+│   │   │   │   ├── complaints_screen.dart        ← My complaints list
+│   │   │   │   ├── submit_complaint_screen.dart  ← New complaint form
+│   │   │   │   └── complaint_detail_screen.dart  ← Detail + status trail
+│   │   │   └── viewmodels/
+│   │   │       └── complaints_viewmodel.dart
+│   │   │
+│   │   ├── lost_found/
+│   │   │   ├── models/
+│   │   │   │   └── lost_found_model.dart
+│   │   │   ├── views/
+│   │   │   │   ├── lost_found_screen.dart        ← Board + my reports tabs
+│   │   │   │   └── report_lost_screen.dart       ← Submit lost item report
+│   │   │   └── viewmodels/
+│   │   │       └── lost_found_viewmodel.dart
 │   │   │
 │   │   ├── notifications/
 │   │   │   ├── models/
 │   │   │   │   └── notification_model.dart
 │   │   │   ├── views/
-│   │   │   │   └── notifications_screen.dart
+│   │   │   │   └── notifications_screen.dart     ← Full notification panel
 │   │   │   └── viewmodels/
 │   │   │       └── notifications_viewmodel.dart
 │   │   │
-│   │   ├── ai_chat/
-│   │   │   ├── models/
-│   │   │   │   └── chat_message_model.dart
-│   │   │   ├── views/
-│   │   │   │   └── ai_chat_screen.dart
-│   │   │   ├── viewmodels/
-│   │   │   │   └── ai_chat_viewmodel.dart
-│   │   │   └── repositories/
-│   │   │       └── ai_chat_repository.dart
-│   │   │
-│   │   ├── profile/
-│   │   │   ├── views/
-│   │   │   │   ├── profile_screen.dart
-│   │   │   │   └── settings_screen.dart
-│   │   │   └── viewmodels/
-│   │   │       └── profile_viewmodel.dart
-│   │   │
-│   │   └── splash/
-│   │       └── views/
-│   │           └── splash_screen.dart
+│   │   └── profile/
+│   │       ├── models/
+│   │       │   └── profile_model.dart
+│   │       ├── views/
+│   │       │   ├── profile_screen.dart           ← Main profile page
+│   │       │   ├── edit_profile_screen.dart      ← Edit name / avatar
+│   │       │   ├── change_password_screen.dart
+│   │       │   ├── add_child_screen.dart         ← Link another child
+│   │       │   └── settings_screen.dart          ← Theme, biometric, notifications
+│   │       └── viewmodels/
+│   │           └── profile_viewmodel.dart
 │   │
 │   ├── shared/
 │   │   ├── widgets/
 │   │   │   ├── custom_button.dart
-│   │   │   ├── custom_textfield.dart
+│   │   │   ├── custom_text_field.dart
+│   │   │   ├── bottom_nav_bar.dart           ← 5-tab bottom navigation
+│   │   │   ├── child_switcher.dart           ← Header child selector
+│   │   │   ├── notification_badge.dart       ← Bell icon + unread count
 │   │   │   ├── announcement_card.dart
-│   │   │   ├── bottom_nav_bar.dart
+│   │   │   ├── gate_event_tile.dart
+│   │   │   ├── attendance_tile.dart
+│   │   │   ├── grade_chip.dart               ← A/B/C/D/F with colour
 │   │   │   └── loading_indicator.dart
 │   │   └── themes/
-│   │       ├── app_theme.dart           ← Base theme
-│   │       └── theme_provider.dart      ← 5 color themes
+│   │       ├── app_theme.dart                ← Base theme definition
+│   │       └── theme_provider.dart           ← 5 colour themes
 │   │
 │   └── main.dart
 │
@@ -167,14 +177,82 @@ universe-flutter/
 ## State Management
 
 ```
-Provider (recommended) or Riverpod
+Provider (ChangeNotifier pattern)
 
 Each ViewModel extends ChangeNotifier:
-    → Holds screen state
-    → Calls repository methods
-    → Notifies UI on change
+  → Holds screen state (loading, data, error)
+  → Calls repository methods
+  → Calls notifyListeners() to rebuild UI
+  → Handles FCM deep-link navigation
 
-View uses Consumer/watch to rebuild on state change
+View uses Consumer<ViewModel> or context.watch<ViewModel>()
+to rebuild on state changes.
+```
+
+---
+
+## Screen Navigation Flow
+
+```
+App Launch
+    ↓
+SplashScreen
+    → Check JWT in flutter_secure_storage
+    → POST /api/auth/refresh to validate
+        ↓
+    Valid JWT → Check is_parent_linked
+        Linked     → HomeScreen (Main dashboard)
+        Not linked → LinkChildScreen
+        ↓
+    No JWT / Expired → LoginScreen
+        ↓
+LoginScreen → RegisterScreen → OtpScreen
+    → LinkChildScreen → ConfirmChildScreen → OtpScreen (email)
+    → HomeScreen
+
+Main App (after login):
+    BottomNavigationBar (5 tabs):
+        [Home] [Attendance] [Messages] [Complaints] [Profile]
+
+    Child Switcher (shown if > 1 child linked):
+        → Header widget on all main screens
+        → Tap → BottomSheet with child list
+        → Select → all screens update to show selected child's data
+```
+
+---
+
+## Bottom Navigation Tabs
+
+| Tab | Icon | Screen | Description |
+|-----|------|--------|-------------|
+| Home | 🏠 | HomeScreen | Announcement feed, quick stats |
+| Attendance | 📋 | AttendanceScreen | History, summary, excuse notes |
+| Messages | 💬 | MessagesScreen | Teacher threads |
+| Complaints | 📝 | ComplaintsScreen | Submit + track |
+| Profile | 👤 | ProfileScreen | Settings, children, grades, timetable |
+
+> Lost & Found and AI Bot accessible from Home screen shortcuts / Profile menu.
+> Notifications panel accessible from bell icon in app header.
+
+---
+
+## Theme System
+
+```dart
+// 5 colour themes stored in SharedPreferences
+enum AppThemeColor {
+  purple,   // default
+  blue,
+  green,
+  orange,
+  pink,
+}
+
+// ThemeProvider (ChangeNotifier)
+// Reads from SharedPreferences on init
+// Notifies all widgets on theme change
+// Applied via MaterialApp theme parameter
 ```
 
 ---
@@ -186,98 +264,105 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # HTTP
-  dio: ^5.0.0
+  # HTTP client
+  dio: ^5.4.0
 
   # State Management
-  provider: ^6.0.0
+  provider: ^6.1.0
 
-  # Secure Storage
-  flutter_secure_storage: ^9.0.0
+  # Secure token storage
+  flutter_secure_storage: ^9.2.0
 
-  # Local Storage (themes, AI chat history)
-  shared_preferences: ^2.0.0
+  # Local preferences (theme, biometric flag)
+  shared_preferences: ^2.2.0
 
-  # Supabase Realtime
-  supabase_flutter: ^2.0.0
+  # Supabase (Realtime subscriptions)
+  supabase_flutter: ^2.3.0
 
-  # Firebase Push Notifications
-  firebase_core: ^2.0.0
-  firebase_messaging: ^14.0.0
+  # Firebase push notifications
+  firebase_core: ^2.27.0
+  firebase_messaging: ^14.7.0
 
-  # Biometric
-  local_auth: ^2.0.0
-
-  # QR Scanner
-  mobile_scanner: ^3.0.0
+  # Biometric login
+  local_auth: ^2.2.0
 
   # Navigation
-  go_router: ^12.0.0
+  go_router: ^13.0.0
 
-  # UI
-  cached_network_image: ^3.0.0
+  # Image loading + caching
+  cached_network_image: ^3.3.0
+
+  # Date formatting
+  intl: ^0.19.0
 ```
 
 ---
 
-## Screen Navigation Flow
-
-```
-App Launch
-    → Splash Screen
-    → Check JWT in secure storage
-        ↓
-    Valid JWT → Role check
-        student → Dashboard
-        lecturer/admin → show error (wrong app)
-        ↓
-    No JWT → Login Screen
-        ↓
-    Login → OTP → Academic Setup → Dashboard
-
-Dashboard Bottom Navigation:
-    [Home] [Questions] [Attendance] [AI Chat] [Notifications] [Profile]
-```
-
----
-
-## Theme System
+## FCM Foreground + Background Handling
 
 ```dart
-// 5 color options stored in SharedPreferences
-enum AppTheme {
-  purple,   // default
-  blue,
-  green,
-  orange,
-  pink,
+// main.dart
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await Supabase.initialize(url: ..., anonKey: ...);
+
+  // Handle background/terminated FCM
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  runApp(const SchoolConnectApp());
 }
 
-// Only changes corner circle decoration components
-// All other elements stay primary color
+// Background handler (top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // System handles showing the notification
+  // No UI update needed here
+}
+
+// Foreground handler (in FCMService)
+FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  // Show in-app banner or update badge count
+  notificationProvider.add(message.data);
+});
+
+// Tap handler (app opened from notification)
+FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+  final navigateTo = message.data['navigate_to'];
+  router.push('/$navigateTo');
+});
 ```
 
 ---
 
-## Local AI Chat Storage
+## Supabase Realtime Subscription (Parent notifications)
 
 ```dart
-// Chat history stored in SharedPreferences
-// Key: 'ai_chat_history'
-// Value: JSON encoded list of messages
-// Never sent to backend
-// Cleared on logout
-```
+// In NotificationsViewModel
+void subscribeToNotifications(String userId) {
+  _channel = supabase
+    .channel('notifications:$userId')
+    .onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'notifications',
+      filter: PostgresChangeFilter(
+        type: FilterType.eq,
+        column: 'user_id',
+        value: userId,
+      ),
+      callback: (payload) {
+        _unreadCount++;
+        _notifications.insert(0, NotificationModel.fromJson(payload.newRecord));
+        notifyListeners();
+      },
+    )
+    .subscribe();
+}
 
----
+@override
+void dispose() {
+  supabase.removeChannel(_channel);
+  super.dispose();
+}
 
-## Biometric Setup Flow
-
-```dart
-// In settings screen:
-1. User toggles biometric switch
-2. Verify current password first
-3. If correct → enable biometric flag in SharedPreferences
-4. On next app open → show biometric prompt
-5. Uses local_auth package (fingerprint / face ID)
-```

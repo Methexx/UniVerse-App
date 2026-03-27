@@ -1,8 +1,6 @@
 # 01 — System Architecture
 
-## Overview
-
-Universe is an AI-powered university communication platform built on a client-server RESTful architecture with role-based access control. The system consists of two client applications communicating with a single backend API, backed by Supabase as the primary data and auth layer.
+> School Connect — AI-Powered School-to-Parent Communication Platform
 
 ---
 
@@ -18,44 +16,48 @@ with Role-Based Access Control (RBAC)
 ## High-Level Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLIENTS                              │
-│                                                             │
-│   ┌─────────────────┐         ┌─────────────────────────┐  │
-│   │  Flutter Mobile │         │   Next.js Web Dashboard │  │
-│   │   (Students)    │         │  (Lecturers & Admins)   │  │
-│   └────────┬────────┘         └────────────┬────────────┘  │
-│            │ REST API                       │ REST API      │
-└────────────┼───────────────────────────────┼───────────────┘
-             │                               │
-             ▼                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    BACKEND API LAYER                        │
-│                                                             │
-│              Node.js + Fastify (TypeScript)                 │
-│                                                             │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐  │
-│  │   Auth   │ │  Users   │ │Questions │ │  Attendance  │  │
-│  │  Module  │ │  Module  │ │  Module  │ │    Module    │  │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────────┘  │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐  │
-│  │Complaints│ │Announce- │ │Notifica- │ │   AI/RAG     │  │
-│  │  Module  │ │  ments   │ │  tions   │ │   Module     │  │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────────┘  │
-│                                                             │
-│              RBAC Middleware (all routes)                   │
-└──────────────────────┬──────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                           CLIENTS                                │
+│                                                                  │
+│  ┌──────────────────┐        ┌──────────────────────────────┐   │
+│  │  Flutter Mobile  │        │    Next.js Web Dashboard     │   │
+│  │  (Parents only)  │        │  (Admin, Teacher, Security)  │   │
+│  └────────┬─────────┘        └─────────────┬────────────────┘   │
+│           │ REST API                        │ REST API           │
+└───────────┼────────────────────────────────┼────────────────────┘
+            │                                │
+            ▼                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                       BACKEND API LAYER                          │
+│                                                                  │
+│                  Node.js + Fastify (TypeScript)                  │
+│                                                                  │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
+│  │   Auth   │ │  Users   │ │  Gate    │ │   Attendance     │   │
+│  │  Module  │ │  Module  │ │  Module  │ │     Module       │   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
+│  │Messages  │ │Announce- │ │Complaints│ │    AI / RAG      │   │
+│  │  Module  │ │  ments   │ │  Module  │ │     Module       │   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐   │
+│  │  Grades  │ │Lost+Found│ │Students  │ │  Notifications   │   │
+│  │  Module  │ │  Module  │ │  Module  │ │     Module       │   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────────────┘   │
+│                                                                  │
+│                  RBAC Middleware (all routes)                    │
+└──────────────────────┬───────────────────────────────────────────┘
                        │
           ┌────────────┼────────────┐
           ▼            ▼            ▼
 ┌──────────────┐ ┌──────────┐ ┌──────────────────────┐
 │   Supabase   │ │ Firebase │ │      OpenAI API       │
-│              │ │   FCM    │ │  (RAG + AI Chat)      │
-│ • PostgreSQL │ │          │ │                       │
-│ • pgvector   │ │  Push    │ │  • Embeddings         │
-│ • Auth       │ │  Notif.  │ │  • Chat completions   │
-│ • Storage    │ └──────────┘ └──────────────────────┘
-│ • Realtime   │
+│              │ │   FCM    │ │                       │
+│ • PostgreSQL │ │          │ │  • text-embedding-    │
+│ • pgvector   │ │  Push    │ │    3-small (RAG)      │
+│ • Auth       │ │  Notif.  │ │  • gpt-4o-mini        │
+│ • Storage    │ └──────────┘ │    (policy answers)   │
+│ • Realtime   │              └──────────────────────┘
 └──────────────┘
 ```
 
@@ -64,13 +66,13 @@ with Role-Based Access Control (RBAC)
 ## Two Repository Structure
 
 ```
-universe-platform/          → Web Dashboard + Backend API
-├── frontend/               → Next.js (Lecturers & Admins)
-├── backend/                → Node.js + Fastify API
+school-connect-platform/      → Web Dashboard + Backend API
+├── frontend/                 → Next.js (Admin, Teacher, Security)
+├── backend/                  → Node.js + Fastify API
 ├── docker-compose.yml
 └── docker-compose.dev.yml
 
-universe-flutter/           → Flutter Mobile App (Students)
+school-connect-flutter/       → Flutter Mobile App (Parents)
 ```
 
 ---
@@ -80,41 +82,50 @@ universe-flutter/           → Flutter Mobile App (Students)
 ### Backend
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Runtime | Node.js | Server runtime |
-| Framework | Fastify | HTTP framework |
-| Language | TypeScript | Type safety |
-| Auth | Supabase Auth + JWT | Authentication |
-| Validation | Zod | Schema validation |
-| OTP | Nodemailer / Supabase | Email OTP |
+| Runtime | Node.js 20 | Server runtime |
+| Framework | Fastify | HTTP framework — 2x Express performance |
+| Language | TypeScript | Type safety throughout |
+| Validation | Zod | Request schema validation |
+| Auth | Custom JWT + bcrypt | JWT generation, password hashing |
+| Email | Nodemailer | OTP email delivery |
+| PDF | pdf-parse | Text extraction from policy PDFs |
 
-### Frontend — Web
+### Frontend — Web (Admin, Teacher, Security)
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | Framework | Next.js 14 (App Router) | Web dashboard |
 | Language | TypeScript | Type safety |
-| UI Library | shadcn/ui | Components |
-| Styling | Tailwind CSS | Styling |
-| Theme | Dark / Light | Two themes |
+| UI Library | shadcn/ui | Accessible component library |
+| Styling | Tailwind CSS | Utility-first styling |
+| Theme | Dark / Light | System preference + user toggle |
+| Auth Storage | HTTP-only cookie | XSS-safe JWT storage |
 
-### Frontend — Mobile
+### Frontend — Mobile (Parents)
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Framework | Flutter (Dart) | Mobile app |
-| Architecture | MVVM | Code structure |
-| Auth Storage | flutter_secure_storage | Token storage |
-| Biometric | local_auth | Biometric login |
-| Notifications | firebase_messaging | Push receive |
-| QR Scanner | mobile_scanner | QR scanning |
+| Framework | Flutter (Dart) | Cross-platform mobile app |
+| Architecture | MVVM | Clean separation of concerns |
+| Auth Storage | flutter_secure_storage | Encrypted JWT storage |
+| Biometric | local_auth | Fingerprint / face ID login |
+| Notifications | firebase_messaging | Receive FCM push notifications |
+| State | Provider | State management |
+| HTTP | Dio | HTTP client |
+| Routing | go_router | Declarative navigation |
 
 ### Infrastructure
-| Service | Purpose |
-|---------|---------|
-| Supabase | PostgreSQL + pgvector + Auth + Storage + Realtime |
-| Firebase FCM | Push notification delivery |
-| OpenAI API | RAG embeddings + AI Chat |
-| Docker | Containerized development |
-| Vercel | Frontend deployment |
-| Railway/Render | Backend deployment |
+| Service | Provider | Purpose |
+|---------|----------|---------|
+| PostgreSQL + extensions | Supabase | Primary database |
+| pgvector | Supabase extension | Vector similarity search for RAG |
+| Auth | Supabase Auth | Email OTP delivery |
+| Storage | Supabase Storage | PDF documents, student photos |
+| Realtime | Supabase Realtime | Live gate log updates |
+| Push notifications | Firebase FCM | Background push to parent phones |
+| AI embeddings | OpenAI | text-embedding-3-small (1536 dim) |
+| AI chat | OpenAI | gpt-4o-mini for RAG answers |
+| Dev orchestration | Docker | Local development environment |
+| Web hosting | Vercel | Next.js dashboard deployment |
+| API hosting | Railway | Fastify backend deployment |
 
 ---
 
@@ -123,23 +134,26 @@ universe-flutter/           → Flutter Mobile App (Students)
 ```
 Production:
 
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Vercel    │    │   Railway   │    │  Supabase   │
-│             │    │             │    │   Cloud     │
-│  Next.js    │───▶│  Fastify    │───▶│             │
-│  Dashboard  │    │  API        │    │  Database   │
-└─────────────┘    └─────────────┘    └─────────────┘
-                          │
-                   ┌──────┴──────┐
-                   │   Firebase  │
-                   │     FCM     │
-                   └─────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐
+│     Vercel      │    │    Railway      │    │  Supabase    │
+│                 │    │                 │    │   Cloud      │
+│  Next.js 14     │───▶│  Fastify API    │───▶│              │
+│  Web Dashboard  │    │  Node.js 20     │    │  PostgreSQL  │
+│                 │    │  Docker         │    │  pgvector    │
+└─────────────────┘    └────────┬────────┘    │  Storage     │
+                                │             │  Realtime    │
+                         ┌──────┴──────┐      └──────────────┘
+                         │  Firebase   │
+                         │    FCM      │      ┌──────────────┐
+                         │             │      │  OpenAI API  │
+                         └─────────────┘      └──────────────┘
 
 Development:
 
 docker-compose.dev.yml
-├── frontend (Next.js) → localhost:3000
-└── backend (Fastify)  → localhost:5000
+├── frontend (Next.js)  → localhost:3000
+└── backend (Fastify)   → localhost:5000
+    └── connects to Supabase Cloud (dev project)
 ```
 
 ---
@@ -147,23 +161,52 @@ docker-compose.dev.yml
 ## Security Architecture
 
 ```
-1. Transport      → HTTPS/TLS on all connections
-2. Authentication → Supabase Auth + JWT tokens
-3. Authorization  → RBAC middleware on every route
-4. Token Storage  → HTTP-only cookies (web)
-                    flutter_secure_storage (mobile)
-5. OTP            → Time-limited, single use
-6. Biometric      → Device-level (Flutter only)
-7. File Upload    → Supabase Storage with signed URLs
+1. Transport       → HTTPS/TLS on all production connections
+2. Authentication  → Custom JWT (7-day expiry, silent refresh)
+3. Authorization   → RBAC middleware on every protected route
+4. Token Storage   → HTTP-only cookie (web, sameSite: strict)
+                     flutter_secure_storage (mobile, encrypted)
+5. OTP             → 6-digit, 10-minute expiry, max 3 attempts, registration only
+6. Biometric       → Device-level only (Flutter, local_auth)
+7. File Upload     → Supabase Storage, signed URLs for access
+8. Gate page       → Security role enforced by Next.js middleware
+                     All non-/gate routes redirect to /gate
+9. Gate API        → Gate JWT scope limited to scan + photo endpoints only
+10. Password       → bcrypt hashed, never stored in plain text
 ```
 
 ---
 
-## User Roles
+## User Roles and Access
 
-| Role | Access Level | Created By |
-|------|-------------|------------|
-| demo | Minimal — pending verification | Self-register |
-| student | Full student features | OTP verified |
-| lecturer | Full lecturer features | Admin promoted |
-| admin | Full system access | Seeded / Admin promoted |
+| Role | Platform | Created By | Middleware Enforcement |
+|------|----------|------------|----------------------|
+| admin | Next.js web — full dashboard | DB seed (first admin) or promoted by existing admin | Full access |
+| teacher | Next.js web — full dashboard | Self-register → pending → admin promotes + assigns class | Full access |
+| security | Next.js web — /gate only | Self-register → pending → admin promotes to security | Redirected to /gate on all routes |
+| parent | Flutter mobile | Self-register → Student ID + OTP → linked | Mobile only |
+
+---
+
+## RBAC Permission Matrix (API Level)
+
+| Endpoint Group | admin | teacher | security | parent |
+|----------------|-------|---------|----------|--------|
+| /api/auth/* | ✅ | ✅ | ✅ | ✅ |
+| /api/gate/scan | ✅ | ❌ | ✅ | ❌ |
+| /api/gate/photo | ✅ | ❌ | ✅ | ❌ |
+| /api/gate/log | ✅ | ❌ | ❌ | ❌ |
+| /api/attendance/session | ❌ | ✅ | ❌ | ❌ |
+| /api/attendance/records | ✅ | ✅ own class | ❌ | ✅ own child |
+| /api/messages | ✅ view | ✅ | ❌ | ✅ |
+| /api/announcements/post | ✅ | ✅ class only | ❌ | ❌ |
+| /api/announcements/read | ✅ | ✅ | ❌ | ✅ |
+| /api/complaints/submit | ❌ | ❌ | ❌ | ✅ |
+| /api/complaints/manage | ✅ | ✅ assigned | ❌ | ❌ |
+| /api/rag/upload | ✅ | ❌ | ❌ | ❌ |
+| /api/rag/query | ❌ | ❌ | ❌ | ✅ |
+| /api/grades/enter | ❌ | ✅ own class | ❌ | ❌ |
+| /api/grades/view | ✅ per student | ✅ own class | ❌ | ✅ own child |
+| /api/students/* | ✅ | ✅ own class | ❌ | ❌ |
+| /api/users/manage | ✅ | ❌ | ❌ | ❌ |
+| /api/admin/* | ✅ | ❌ | ❌ | ❌ |

@@ -1,98 +1,112 @@
 # 06 — Auth Flow
 
+> School Connect — Authentication & Authorisation
+
+---
+
 ## Overview
 
-Universe uses Supabase Auth as the authentication backbone combined with custom JWT-based RBAC middleware. OTP email verification is required for all users. Biometric login is available on Flutter only.
+School Connect uses custom JWT authentication with bcrypt password hashing. OTP via email is used exactly once — at account registration — to prove email ownership. Daily login uses email + password only. JWT expires in 7 days with silent auto-refresh.
 
 ---
 
-## Email Domain Rules
+## First Admin — Database Seed
 
 ```
-Students  → must use @students.nsbm.ac.lk only
-Lecturers → any email (future: academic email required)
-Admins    → seeded directly into database
-```
+Deployed once at system setup:
 
----
+  SQL seed script:
+    INSERT INTO users (email, password_hash, role, full_name)
+    VALUES ('admin@school.lk', bcrypt_hash, 'admin', 'School Principal')
 
-## Student Registration Flow
-
-```
-1. Student opens Flutter app
-        ↓
-2. Enter university email (@students.nsbm.ac.lk)
-        ↓
-3. Backend validates email domain
-   → Not university email → reject with error
-        ↓
-4. OTP generated (6 digits, expires 10 mins)
-        ↓
-5. OTP sent to university email via Supabase Auth
-        ↓
-6. Student enters OTP
-        ↓
-7. OTP verified
-   → Invalid/expired → resend option
-        ↓
-8. Account created with role: "demo"
-        ↓
-9. Academic Profile Setup screen (mandatory)
-   → Select Faculty
-   → Select Degree Program
-   → Select Batch/Intake Year
-   → Select Current Academic Year
-        ↓
-10. Profile saved → role upgraded to "student"
-        ↓
-11. JWT issued with payload:
-    { userId, role: "student", email }
-        ↓
-12. Token stored in flutter_secure_storage
-        ↓
-13. Student Dashboard unlocked
+This admin can then promote any pending registered user to
+any role: teacher, security, or admin.
+No further seeding is ever needed.
 ```
 
 ---
 
-## Lecturer Registration Flow
+## Staff Registration Flow (Teacher & Security Guard)
+
+Both teacher and security guard use the exact same self-registration flow.
+The only difference is the role admin assigns at promotion.
 
 ```
-1. Lecturer opens Next.js web dashboard
+1. Staff member opens the web dashboard URL
         ↓
-2. Enter any email
+2. Clicks Register → enters full name, email, password
         ↓
-3. OTP sent to email
+3. Backend sends 6-digit OTP to that email
+   POST /api/auth/register → otp_verifications INSERT
         ↓
-4. OTP verified
+4. Staff enters OTP
+   POST /api/auth/verify-otp
+    → checks expiry (10 min), checks attempts (max 3)
+    → marks OTP as used
+    → CREATE user in users table with role: 'pending'
+    → JWT issued with role: 'pending'
         ↓
-5. Account created with role: "demo"
+5. Staff is now logged in but sees ONLY the pending approval screen
+   → Zero API access (RBAC blocks all routes for role: pending)
+   → Cannot see any dashboard content
         ↓
-6. Lecturer waits for admin promotion
+6. Admin opens Users → Pending Accounts
+    → Sees staff member's name and email
+    → Selects role to assign:
+        Teacher  → must also pick class + subject
+        Security → no extra assignment needed
+        Admin    → for deputy principal
+    → Clicks Confirm
+    → Backend: UPDATE users SET role = ? WHERE id = ?
+    → Backend: system email sent to staff: 'Your account has been approved'
         ↓
-7. Admin promotes demo → "lecturer"
-        ↓
-8. Lecturer gets notified
-        ↓
-9. Lecturer logs in → Lecturer Dashboard
+7. Staff logs in (or refreshes) → JWT re-issued with promoted role
+   → Full dashboard access granted
+   → Teacher sees My Classrooms with assigned class
+   → Security guard redirected to /gate only
 ```
 
 ---
 
-## Admin Seeding Flow
+## Parent Registration Flow
 
 ```
-First admin created directly in Supabase DB:
-    → Email: admin@nsbm.ac.lk
-    → Role: "admin"
-    → Password: bcrypt hashed
+1. Parent downloads Flutter app
+        ↓
+2. Taps Register → enters email + password
+        ↓
+3. Parent enters child's Student ID from physical school card
+   e.g. SCH-2026-0042
+        ↓
+4. POST /api/auth/link-child { student_id_no: "SCH-2026-0042" }
+    → Backend: SELECT * FROM students WHERE student_id_no = ?
+    → One indexed lookup — instant
+    → Returns: child name + class for confirmation
+        ↓
+5. App shows: "Is this your child? — Amal Bandara, Grade 8A"
+   Parent taps YES
+        ↓
+6. Backend retrieves parent_email from student record
+   → Sends 6-digit OTP to that email address
+   → This is the email the school collected at enrollment
+        ↓
+7. Parent enters OTP from inbox
+    → Verified → parent account created
+    → parent_students row inserted (UNIQUE student_id enforced)
+    → students.is_parent_linked = true
+    → JWT issued with role: 'parent'
+    → Home screen unlocked
+        ↓
+Mobile OTP fallback:
+    If parent cannot access the email → taps "Use phone number instead"
+    → Backend sends SMS OTP to parent_mobile stored in student record
+    → Same verification flow, same result
 
-Admin can then promote any user:
-    demo → student
-    demo → lecturer
-    demo → admin
-    lecturer → admin
-    admin → lecturer
+Adding a second child (sibling):
+    Profile → Add Child
+    → Repeat Student ID + OTP flow for the sibling
+    → New parent_students row created
+    → App shows child switcher in header
 ```
 
 ---
@@ -102,51 +116,81 @@ Admin can then promote any user:
 ```
 1. Enter email + password
         ↓
-2. Backend validates credentials via Supabase Auth
+2. POST /api/auth/login
+    → SELECT user FROM users WHERE email = ?
+    → bcrypt.compare(password, password_hash)
+    → Check is_active = true, is_suspended = false
+    → Check role !== 'pending' (pending → error: ACCOUNT_PENDING)
         ↓
-3. Check role in users table
-        ↓
-4. Generate JWT:
+3. Generate JWT:
    {
      userId: uuid,
-     role: "student" | "lecturer" | "admin",
+     role: 'teacher' | 'security' | 'admin' | 'parent',
      email: string,
-     exp: timestamp
+     iat: timestamp,
+     exp: timestamp (7 days)
    }
         ↓
-5. Return JWT + role + basic profile
+4. Return JWT + role + basic profile
         ↓
-Flutter  → store in flutter_secure_storage
-Next.js  → store in HTTP-only cookie
+Web (teacher/admin)   → store in HTTP-only cookie (sameSite: strict)
+Flutter (parent)      → store in flutter_secure_storage
         ↓
-6. Role-based redirect:
-   student  → Student Dashboard (Flutter)
-   lecturer → Lecturer Dashboard (Web)
-   admin    → Admin Dashboard (Web)
+5. Role-based redirect:
+   admin    → Admin Dashboard (Next.js)
+   teacher  → My Classrooms (Next.js)
+   security → /gate page only (Next.js, middleware-enforced)
+   parent   → Home Dashboard (Flutter)
 ```
 
 ---
 
-## Biometric Login Flow (Flutter Only)
+## Security Guard — Gate Page Enforcement
+
+```
+Security guard logs in with role: 'security'
+        ↓
+Next.js middleware (middleware.ts) runs on every request:
+    → Extract JWT from cookie
+    → Decode role
+    → If role === 'security':
+        → If path !== '/gate':
+            → redirect(response, '/gate')
+        → Proceed to /gate
+    → If role !== 'security':
+        → Normal role-based access
+        ↓
+/gate page:
+    → Only shows gate scanner UI
+    → No sidebar, no navigation
+    → Back button has no history to go to
+    → If staff tries to manually type /dashboard:
+        → Middleware intercepts → redirects to /gate
+```
+
+---
+
+## Biometric Login Flow (Flutter — Parent Only)
 
 ```
 Prerequisites:
-    → User must be logged in once normally
-    → Biometric enabled in Settings
+  → Parent has logged in once normally
+  → Biometric enabled in Profile → Settings
 
 Flow:
-1. App opens → check biometric enabled flag (local)
+1. App opens → checks biometric_enabled flag in SharedPreferences
         ↓
-2. Show biometric prompt (fingerprint/face)
+2. Shows biometric prompt (fingerprint / face ID)
+   using local_auth package
         ↓
-3. Device authenticates locally
+3. Device authenticates locally (no network call)
         ↓
 4. Retrieve stored JWT from flutter_secure_storage
         ↓
-5. Validate JWT with backend
+5. POST /api/auth/refresh → validate JWT with backend
         ↓
-6. If valid → Dashboard
-   If expired → full login required
+6. Valid  → Home Dashboard
+   Expired → full login required (clear biometric flag until re-login)
 ```
 
 ---
@@ -156,58 +200,80 @@ Flow:
 ```
 Incoming Request
         ↓
-Extract Bearer token from Authorization header
+authenticate middleware:
+    → Extract JWT from:
+        Web   → HTTP-only cookie
+        Mobile → Authorization: Bearer header
+    → Verify JWT signature (JWT_SECRET)
+    → Check exp (not expired)
+    → Decode payload → attach to request.user
+    → If invalid/missing → 401 Unauthorized
         ↓
-Verify JWT signature
+rbac middleware (if applied to route):
+    → Check request.user.role against allowed roles array
+    → Match   → proceed to controller
+    → No match → 403 Forbidden
         ↓
-Check token expiry
-        ↓
-Extract role from payload
-        ↓
-Compare role against route permission
-        ↓
-Match  → attach user to request → proceed
-No match → 401 Unauthorized
+Controller executes
 ```
 
 ---
 
-## RBAC Permission Matrix
+## Silent Token Refresh
 
-| Route Group | student | lecturer | admin |
-|-------------|---------|----------|-------|
-| /auth/* | ✅ | ✅ | ✅ |
-| /questions/* | ✅ | ✅ | ✅ |
-| /attendance/scan | ✅ | ❌ | ❌ |
-| /attendance/create | ❌ | ✅ | ✅ |
-| /complaints/submit | ✅ | ❌ | ❌ |
-| /complaints/manage | ❌ | ✅ | ✅ |
-| /announcements/create | ❌ | ✅ | ✅ |
-| /modules/upload-pdf | ❌ | ✅ | ✅ |
-| /admin/* | ❌ | ❌ | ✅ |
-| /notifications/send | ❌ | ✅ | ✅ |
+```
+Web (Next.js):
+    On every page load:
+    → Check cookie JWT expiry
+    → If < 1 day remaining: POST /api/auth/refresh
+    → New JWT issued, replaces old cookie
+    → Teacher stays logged in on school computer indefinitely
+    → If token expired completely → redirect to login
+
+Flutter:
+    On app open:
+    → Check flutter_secure_storage JWT
+    → POST /api/auth/refresh
+    → If valid → proceed
+    → If expired → show login screen
+```
 
 ---
 
-## Account Expiry & Re-verification Flow
+## Forgot Password Flow
 
 ```
-End of academic year:
+1. User taps 'Forgot password' on login screen
         ↓
-Student account flagged as expired
+2. Enters email address
+   POST /api/auth/forgot-password
+    → OTP generated and sent to that email
         ↓
-Student gets push notification
+3. User enters 6-digit OTP
+   POST /api/auth/verify-otp (with type: 'password_reset')
+    → OTP verified
         ↓
-Student opens app → expiry screen shown
-        ↓
-Student re-verifies:
-    1. Login with university email
-    2. OTP sent to university email
-    3. OTP verified
-    4. Confirm current academic year
-        ↓
-Account reactivated automatically
-(No admin involvement required)
+4. User sets new password
+   POST /api/auth/reset-password { email, otp_id, new_password }
+    → bcrypt.hash(new_password)
+    → UPDATE users SET password_hash = ?
+    → All existing JWTs invalidated (version bump or token blacklist)
+```
+
+---
+
+## All Sessions Logout
+
+```
+POST /api/auth/logout-all
+    → Backend: UPDATE users SET token_version = token_version + 1
+    → All existing JWTs have old token_version → fail validation
+    → Every device/browser is effectively logged out immediately
+
+JWT payload includes token_version.
+authenticate middleware compares payload.token_version
+against users.token_version on every request.
+Mismatch → 401 → redirect to login.
 ```
 
 ---
@@ -215,22 +281,57 @@ Account reactivated automatically
 ## OTP Configuration
 
 ```
-Length      : 6 digits
-Expiry      : 10 minutes
-Max attempts: 3 (then regenerate)
-Delivery    : Supabase Auth email
-Resend      : After 60 seconds cooldown
+Length       : 6 digits
+Expiry       : 10 minutes
+Max attempts : 3 (then lock — new OTP required)
+Resend       : After 60 second cooldown
+Delivery     : Email via Nodemailer (SMTP)
+               SMS via Twilio or similar (mobile fallback for parents)
+Used for     : Registration only + forgot password
+NOT used for : Daily login
 ```
 
 ---
 
-## Token Configuration
+## JWT Configuration
 
 ```
-JWT Secret  : ENV variable (SUPABASE_JWT_SECRET)
+Secret      : JWT_SECRET env variable (min 32 chars)
 Expiry      : 7 days
-Refresh     : Silent refresh on app open
+Algorithm   : HS256
 Storage     :
-    Flutter  → flutter_secure_storage
-    Next.js  → HTTP-only cookie (sameSite: strict)
+    Web     → HTTP-only cookie, sameSite: strict, secure: true
+    Flutter → flutter_secure_storage (AES encrypted on device)
+Payload     :
+    {
+      userId:        string (UUID)
+      role:          string
+      email:         string
+      token_version: number
+      iat:           number
+      exp:           number
+    }
 ```
+
+---
+
+## RBAC Permission Matrix
+
+| Route Group | admin | teacher | security | parent | pending |
+|-------------|-------|---------|----------|--------|---------|
+| /api/auth/* | ✅ | ✅ | ✅ | ✅ | ✅ |
+| /api/users/manage | ✅ | ❌ | ❌ | ❌ | ❌ |
+| /api/school/students | ✅ | ✅ own class | ❌ | ❌ | ❌ |
+| /api/gate/scan | ✅ | ❌ | ✅ | ❌ | ❌ |
+| /api/gate/log | ✅ | ❌ | today only | ❌ | ❌ |
+| /api/attendance/session | ❌ | ✅ | ❌ | ❌ | ❌ |
+| /api/attendance/records | ✅ | ✅ own class | ❌ | ✅ own child | ❌ |
+| /api/messages | ✅ view | ✅ | ❌ | ✅ | ❌ |
+| /api/announcements/post | ✅ | ✅ class | ❌ | ❌ | ❌ |
+| /api/complaints/submit | ❌ | ❌ | ❌ | ✅ | ❌ |
+| /api/complaints/manage | ✅ | ✅ assigned | ❌ | ❌ | ❌ |
+| /api/rag/upload | ✅ | ❌ | ❌ | ❌ | ❌ |
+| /api/rag/query | ❌ | ❌ | ❌ | ✅ | ❌ |
+| /api/grades/enter | ❌ | ✅ own class | ❌ | ❌ | ❌ |
+| /api/admin/* | ✅ | ❌ | ❌ | ❌ | ❌ |
+| All routes | ❌ | ❌ | ❌ | ❌ | ❌ pending = blocked |
