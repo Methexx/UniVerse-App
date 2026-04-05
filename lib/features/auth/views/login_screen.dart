@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:universe_app/core/constants/app_routes.dart';
-import 'package:universe_app/core/constants/app_strings.dart';
 import 'package:universe_app/features/auth/viewmodels/auth_viewmodel.dart';
-import 'package:universe_app/shared/widgets/custom_button.dart';
-import 'package:universe_app/shared/widgets/custom_textfield.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

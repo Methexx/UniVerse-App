@@ -1,8 +1,6 @@
 # 05 — Realtime Channels
 
-## Overview
-
-Universe uses Supabase Realtime for live in-app updates when the app is open, and Firebase FCM for push notifications when the app is in background or closed.
+> School Connect — Supabase Realtime + Firebase FCM Strategy
 
 ---
 
@@ -16,149 +14,170 @@ App Open (Foreground):
 App Closed / Background:
     → Firebase FCM
     → Push notification to device
+
+Both fire for every event — no either/or logic.
+Realtime updates the UI. FCM reaches the user when they are away.
 ```
 
 ---
 
-## Supabase Realtime Channels
+## Firebase FCM Push Notification Triggers
 
-### Channel 1: notifications:{userId}
-```
-Purpose   : Receive new notifications in real-time
-Subscribes: When user opens app
-Listens   : INSERT on notifications table WHERE user_id = current user
-
-On event:
-    → Update notification badge count
-    → Add notification to panel list
-    → Show in-app toast/banner
-```
-
-### Channel 2: questions:{moduleId}
-```
-Purpose   : Live updates on question answers
-Subscribes: When student is on questions screen
-Listens   : INSERT on lecturer_answers WHERE question module matches
-
-On event:
-    → Update question card with new answer
-    → Show answer without page refresh
-```
-
-### Channel 3: announcements
-```
-Purpose   : Live announcement updates on dashboard
-Subscribes: When user is on dashboard
-Listens   : INSERT on announcements WHERE relevant to user
-
-On event:
-    → Add new card to sliding announcements
-    → Update announcements list
-```
-
-### Channel 4: attendance:{sessionId}
-```
-Purpose   : Lecturer sees live attendance as students scan
-Subscribes: When lecturer is viewing active session
-Listens   : INSERT on attendance_records WHERE session_id matches
-
-On event:
-    → Update attendance count live
-    → Add student name to present list
-```
-
----
-
-## Firebase FCM Push Notifications
-
-### Trigger Points
-
-| Event | Sender | Receiver | FCM Topic/Token |
-|-------|--------|----------|-----------------|
-| Lecturer answers question | Backend | That student | Student FCM token |
-| New university announcement | Backend | All students | Topic: all_students |
-| New module announcement | Backend | Module students | Topic: module_{id} |
-| Admin sends to lecturers | Backend | All lecturers | Topic: all_lecturers |
-| Lecturer sends to module | Backend | Module students | Topic: module_{id} |
-| Complaint assigned | Backend | That lecturer | Lecturer FCM token |
-| Academic change approved/rejected | Backend | That student | Student FCM token |
-| Attendance session created | Backend | Module students | Topic: module_{id} |
-| Account expiry warning | Backend | That student | Student FCM token |
+| Event | Fired By | Receiver | Data Payload |
+|-------|----------|----------|-------------|
+| Student scanned IN at gate | gate.service | Linked parent | type: gate_in, direction: IN |
+| Student scanned OUT at gate | gate.service | Linked parent | type: gate_out, direction: OUT |
+| Student marked absent | attendance.service | Linked parent | type: absent, subject |
+| Teacher sends message | messages.service | Parent or teacher | type: message, thread_id |
+| New class announcement | announcements.service | Class parents | type: announcement |
+| New school-wide announcement | announcements.service | All parents / all staff (by target) | type: announcement |
+| Grade published | grades.service | Linked parent | type: grade_published, term |
+| Complaint assigned to teacher | complaints.service | Assigned teacher | type: complaint_assigned |
+| New found item posted | lost-found.service | Parents with open reports | type: lost_found_item |
+| AI absence alert (3+ days) | cron job / attendance.service | Admin | type: absence_alert |
 
 ---
 
 ## FCM Token Management
 
 ```
-Flutter app on login:
-    → Get FCM token from firebase_messaging
-    → Send token to backend → POST /api/users/fcm-token
-    → Backend saves to users table
+Parent FCM token:
+    Flutter app on login or app open:
+        → firebase_messaging.getToken()
+        → POST /api/auth/fcm-token  { token: "xxx" }
+        → Backend: UPDATE users SET fcm_token = ? WHERE id = ?
 
-Backend sends notification:
-    → Retrieve FCM token from DB
-    → Send via firebase-admin
-    → Handle delivery errors
-```
+Teacher FCM token:
+    Next.js dashboard uses web push (browser notifications)
+    → Stored same way in users.fcm_token
 
-### users table FCM column
-```sql
-ALTER TABLE users ADD COLUMN fcm_token TEXT;
-```
-
----
-
-## FCM Topic Subscriptions
-
-```
-When student enrolled in module:
-    → Subscribe to topic: module_{moduleId}
-
-When lecturer assigned to module:
-    → Subscribe to topic: module_{moduleId}
-
-All students auto-subscribed to:
-    → Topic: all_students
-
-All lecturers auto-subscribed to:
-    → Topic: all_lecturers
+On token refresh:
+    → firebase_messaging.onTokenRefresh → send new token to backend
 ```
 
 ---
 
-## Notification Payload Structure
+## Supabase Realtime Channels
+
+### Channel: gate_events (Security guard — gate page)
+```
+Purpose    : Live gate log updates on the security guard's screen
+Table      : gate_events
+Event      : INSERT
+Filter     : scanned_at::date = today
+Subscribed : When security guard has gate page open
+
+On INSERT:
+  → New student row added to today's live gate log on screen
+  → Entry counter updated (IN count / OUT count)
+```
+
+### Channel: notifications:{userId} (All roles — Flutter + Next.js)
+```
+Purpose    : Receive new notifications in real time
+Table      : notifications
+Event      : INSERT
+Filter     : user_id = eq.{current_user_id}
+Subscribed : When user opens app / dashboard
+
+On INSERT:
+  → Update notification bell badge count
+  → Append notification to panel list
+  → Show in-app toast (optional)
+```
+
+### Channel: gate_log (Admin — gate oversight page)
+```
+Purpose    : Admin's gate log page updates live
+Table      : gate_events
+Event      : INSERT
+Filter     : none (all today's events)
+Subscribed : When admin has gate log page open
+
+On INSERT:
+  → Add new row to gate log table
+  → Update today's count stats
+```
+
+### Channel: attendance:{sessionId} (Teacher — while session is open)
+```
+Purpose    : Teacher sees excuse notes submitted by parents in real time
+Table      : attendance_records
+Event      : UPDATE
+Filter     : session_id = eq.{sessionId}
+Subscribed : When teacher has today's attendance session open
+
+On UPDATE:
+  → If excuse_note was added → highlight that student row
+  → Show "Excuse note received" indicator
+```
+
+---
+
+## FCM Notification Payload Structure
 
 ```json
 {
   "notification": {
-    "title": "New Answer Available",
-    "body": "Your question about polymorphism has been answered"
+    "title": "Amal entered school",
+    "body": "Amal entered school at 7:42 AM"
   },
   "data": {
-    "type": "question_answered",
-    "reference_id": "question_uuid",
-    "navigate_to": "question_detail"
-  }
+    "type": "gate_in",
+    "student_id": "uuid",
+    "student_name": "Amal Bandara",
+    "direction": "IN",
+    "timestamp": "2026-03-20T07:42:00Z",
+    "navigate_to": "gate_log"
+  },
+  "android": { "priority": "high" },
+  "apns": { "payload": { "aps": { "sound": "default" } } }
 }
 ```
 
-## Navigation on Tap
+## Navigate-To Values (Flutter tap-to-navigate)
 
-| Notification Type | Navigate To |
-|-------------------|-------------|
-| question_answered | Question detail screen |
-| announcement | Announcement detail screen |
-| academic_change | Profile view screen |
-| attendance_created | Attendance screen |
-| complaint_assigned | Complaints screen (lecturer) |
+| Notification Type | navigate_to Value | Screen Opened |
+|-------------------|-------------------|---------------|
+| gate_in | gate_log | Gate log screen |
+| gate_out | gate_log | Gate log screen |
+| absent | attendance_history | Attendance history screen |
+| message | message_thread | Specific message thread |
+| announcement | announcement_detail | Announcement detail |
+| grade_published | grades | Grades screen |
+| complaint_assigned | complaints | Complaints list (teacher) |
+| lost_found_item | lost_found | Lost & found board |
 
 ---
 
-## Realtime Implementation (Flutter)
+## Realtime Implementation — Next.js (Gate page)
+
+```typescript
+// Subscribe to today's gate events on the gate page
+const channel = supabase
+  .channel('gate_events_today')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'gate_events',
+    filter: `scanned_at=gte.${todayStart}`
+  }, (payload) => {
+    setGateLog(prev => [payload.new, ...prev])
+    updateCounts(payload.new.direction)
+  })
+  .subscribe()
+
+// Cleanup on unmount
+return () => supabase.removeChannel(channel)
+```
+
+---
+
+## Realtime Implementation — Flutter (Parent notifications)
 
 ```dart
 // Subscribe to personal notifications channel
-supabase
+final channel = supabase
   .channel('notifications:$userId')
   .onPostgresChanges(
     event: PostgresChangeEvent.insert,
@@ -170,25 +189,38 @@ supabase
       value: userId,
     ),
     callback: (payload) {
-      // Update UI
+      // Update notification badge count
+      ref.read(notificationCountProvider.notifier).increment();
+      // Add to notification list
+      ref.read(notificationsProvider.notifier).add(payload.newRecord);
     },
   )
   .subscribe();
 ```
 
-## Realtime Implementation (Next.js)
+---
 
-```typescript
-// Subscribe to attendance updates for lecturer
-const channel = supabase
-  .channel(`attendance:${sessionId}`)
-  .on('postgres_changes', {
-    event: 'INSERT',
-    schema: 'public',
-    table: 'attendance_records',
-    filter: `session_id=eq.${sessionId}`
-  }, (payload) => {
-    // Update attendance list live
-  })
-  .subscribe()
+## AI Absence Pattern Alert (Automated)
+
+```
+Not a real-time channel — runs as a scheduled check.
+
+Trigger:
+    Every time attendance is submitted for a class
+    → attendance.service checks for consecutive absences:
+    
+    SELECT student_id, COUNT(*) as consecutive_absences
+    FROM attendance_records
+    WHERE student_id = ?
+      AND status = 'absent'
+      AND created_at >= NOW() - INTERVAL '14 days'
+    ORDER BY created_at DESC
+    
+    → If 3 or more consecutive absences:
+        INSERT into notifications (admin)
+        type: 'absence_alert'
+        title: 'Absence alert — Amal Bandara'
+        body: 'Amal has been absent for 3 consecutive days (Grade 8A)'
+
+Admin sees alert on dashboard via Supabase Realtime or on next visit.
 ```

@@ -1,246 +1,318 @@
 # 09 — Sprint Timeline
 
-## Overview
-
-6-week backend-first development plan followed by parallel frontend development. Each sprint is one week with clear deliverables. Agile approach with daily progress tracking.
-
----
-
-## Development Phases
-
-```
-Phase 1 (Weeks 1-6)  → Backend API complete
-Phase 2 (Weeks 7-9)  → Next.js Web Dashboard
-Phase 3 (Weeks 10-12)→ Flutter Mobile App
-Phase 4 (Week 13)    → Integration + Testing
-Phase 5 (Week 14)    → Documentation + Submission
-```
+> School Connect — Development Plan
+> Total: 14 weeks | Backend-first approach
 
 ---
 
-## Phase 1 — Backend (Weeks 1–6)
+## Development Phases Overview
 
-### Week 1 — Foundation
 ```
-Tasks:
-    ✅ Supabase project setup
-    ✅ Database schema creation (all tables)
-    ✅ pgvector extension enabled
-    ✅ Supabase Auth configured
-    ✅ Environment variables configured
-    ✅ Backend folder structure created
-    ✅ config/ files (supabase.ts, openai.ts, firebase.ts)
-    ✅ Common middleware (authenticate.ts, rbac.ts, errorHandler.ts)
-    ✅ Common utils (jwt.ts, otp.ts, response.ts)
-
-Deliverable: Backend running, DB connected, middleware working
-```
-
-### Week 2 — Auth + Users + Academic
-```
-Tasks:
-    → Auth module (register, OTP, login, logout, refresh)
-    → Email domain validation (@students.nsbm.ac.lk)
-    → OTP generation and verification
-    → JWT generation and validation
-    → Users module (CRUD, role management)
-    → Academic profile module
-    → Auto module enrollment on profile setup
-    → Account expiry logic
-    → Academic change request flow
-
-Deliverable: Full auth flow working end-to-end
-             POST /auth/register → OTP → login → JWT
-```
-
-### Week 3 — Admin + Faculty + Modules
-```
-Tasks:
-    → Admin module (faculty CRUD, degree CRUD, module CRUD)
-    → Lecturer assignment to modules
-    → Admin seed script
-    → Role promotion endpoints
-    → User management endpoints
-
-Deliverable: Admin can manage full academic structure
-```
-
-### Week 4 — Questions + RAG Pipeline
-```
-Tasks:
-    → Questions module (ask, escalate, resolve, answer)
-    → PDF upload to Supabase Storage
-    → PDF text extraction (pdf-parse)
-    → Text chunking logic
-    → OpenAI embeddings integration
-    → pgvector similarity search
-    → RAG answer generation
-    → Fallback when no context found
-
-Deliverable: Full RAG pipeline working
-             Upload PDF → ask question → get AI answer
-```
-
-### Week 5 — Attendance + Complaints + Announcements
-```
-Tasks:
-    → Attendance session creation
-    → QR code generation (qrcode package)
-    → QR scan validation (15 min expiry)
-    → Attendance records
-    → Attendance history endpoints
-    → Complaints submission and assignment
-    → Announcements CRUD
-    → Target audience filtering
-
-Deliverable: Attendance, complaints, announcements all working
-```
-
-### Week 6 — Notifications + AI Chat + Testing
-```
-Tasks:
-    → Firebase Admin SDK integration
-    → FCM token management
-    → Topic subscriptions
-    → Push notification sending (all trigger points)
-    → Supabase Realtime channel setup
-    → AI chat endpoint (OpenAI gpt-4o-mini)
-    → Jest unit tests for all modules
-    → API integration tests
-    → Bug fixes
-
-Deliverable: Backend 100% complete and tested
-             All endpoints documented and verified
+Phase 1 (Weeks 1–2)   → Foundation + Auth
+Phase 2 (Weeks 3–5)   → Core Backend Modules
+Phase 3 (Weeks 6–7)   → AI/RAG + Notifications
+Phase 4 (Weeks 8–9)   → Next.js Web Dashboard (Admin + Teacher)
+Phase 5 (Weeks 10–12) → Flutter Mobile App (Parent)
+Phase 6 (Week 13)     → Integration + Testing
+Phase 7 (Week 14)     → Documentation + Submission
 ```
 
 ---
 
-## Phase 2 — Next.js Web Dashboard (Weeks 7–9)
+## Phase 1 — Foundation + Auth (Weeks 1–2)
 
-### Week 7 — Auth + Layout + Dashboard
+### Week 1 — Infrastructure Setup
 ```
 Tasks:
-    → shadcn/ui setup
-    → Dark/light theme
-    → Auth pages (login, OTP verification)
-    → Sidebar layout
-    → Lecturer dashboard home
-    → Admin dashboard home
+  ✅ Supabase project created (dev + prod)
+  ✅ All database tables created (02-database-schema.md)
+  ✅ pgvector + uuid-ossp extensions enabled
+  ✅ First admin seeded via SQL script
+  ✅ Firebase project created, FCM configured
+  ✅ OpenAI API key obtained, usage limits set
+  ✅ Backend folder structure created (04-backend-structure.md)
+  ✅ config/ files: supabase.ts, firebase.ts, openai.ts, env.ts
+  ✅ Common middleware: authenticate.ts, rbac.ts, errorHandler.ts
+  ✅ Common utils: jwt.ts, otp.ts, studentId.ts, gradeCalc.ts, fcm.ts
+  ✅ Docker dev environment working
+  ✅ ESLint, Prettier, Husky configured
 
-Deliverable: Login working, dashboard layout complete
+Deliverable: Backend running, DB connected, middleware verified
 ```
 
-### Week 8 — Lecturer Features
-```
-Tasks:
-    → My Modules page
-    → PDF upload interface
-    → Escalated questions management
-    → Answer questions (public/private)
-    → QR attendance session creation
-    → Live attendance view (Supabase Realtime)
-    → Module announcements
-    → Send notifications to module students
-
-Deliverable: Full lecturer workflow working
-```
-
-### Week 9 — Admin Features
+### Week 2 — Auth Module Complete
 ```
 Tasks:
-    → User management (role promotion)
-    → Faculty/degree/module management
-    → Lecturer assignment
-    → Complaints management + assignment
-    → Attendance charts (per module per day)
-    → Academic change request management
-    → Send notifications (all users/lecturers)
+  → POST /api/auth/register + OTP flow
+  → POST /api/auth/verify-otp
+  → POST /api/auth/login (email + password + JWT)
+  → POST /api/auth/logout + logout-all (token_version bump)
+  → POST /api/auth/forgot-password + reset-password
+  → PUT /api/auth/link-child (Student ID + email OTP)
+  → PUT /api/auth/fcm-token
+  → All-sessions logout (token_version)
+  → Users module (GET/PUT me, admin user management)
+  → Admin: promote pending account to teacher/security/admin
 
-Deliverable: Full admin workflow working
+Deliverable: Full auth flow tested in Postman
+             Register → OTP → login → JWT working
+             Parent: Student ID → email OTP → linked
+             Admin: promote pending → staff gets email
 ```
 
 ---
 
-## Phase 3 — Flutter Mobile App (Weeks 10–12)
+## Phase 2 — Core Backend Modules (Weeks 3–5)
 
-### Week 10 — Auth + Profile + Dashboard
+### Week 3 — School Structure + Gate
 ```
 Tasks:
-    → Project setup, dependencies
-    → MVVM structure
-    → Splash screen
-    → Login, register, OTP screens
-    → Academic profile setup screen
-    → Student dashboard (announcements, quick actions)
-    → Bottom navigation
-    → Theme system (5 colors)
+  → School module: grades, classes, student records
+  → Student auto-generate: student_id_no + qr_code on CREATE
+  → Student photo upload to Supabase Storage
+  → Gate module:
+      POST /api/gate/scan (QR + manual)
+      GET /api/gate/photo/:studentId
+      GET /api/gate/log (with filters: late, manual, reason, class, date)
+      GET /api/gate/discrepancies
+      GET /api/gate/analytics
+  → FCM notification on gate scan → parent
+  → Supabase Realtime: gate_events channel for live gate log
 
-Deliverable: Login → Profile setup → Dashboard working
+Deliverable: Gate scan → FCM fires to parent phone (tested end-to-end)
 ```
 
-### Week 11 — Core Student Features
-```
-Tasks:
-    → Questions screen (module select, common Q&A)
-    → Ask question + AI answer display
-    → Escalate to lecturer
-    → QR scanner screen
-    → Attendance history screen
-    → Complaints submission screen
-    → Complaint history screen
-    → Announcements detail screen
-
-Deliverable: All core student features working
-```
-
-### Week 12 — Notifications + AI Chat + Settings
+### Week 4 — Attendance + Messaging
 ```
 Tasks:
-    → Notifications panel screen
-    → Firebase FCM setup (receive)
-    → Supabase Realtime subscriptions
-    → Notification navigation on tap
-    → AI chat screen
-    → Local chat history storage
-    → Profile screen
-    → Settings screen (full implementation)
-    → Biometric setup
-    → Academic change request submission
+  → Attendance module:
+      POST /api/attendance/session (create daily session)
+      GET session with gate_status per student
+      PUT session (submit P/A/L records)
+      Auto FCM on absent mark → parent
+      Gate vs attendance discrepancy detection
+      AI absence alert (3+ consecutive days) → admin
+      PUT excuse note from parent
+      GET attendance history (class + student + date range)
+  → Messages module:
+      GET inbox / thread
+      POST send message (+ FCM to receiver)
+      PUT mark as read
+      POST ai-draft (attendance-context-aware)
+  → Supabase Realtime: notifications channel per user
 
-Deliverable: Complete Flutter app working end-to-end
+Deliverable: Attendance session created → gate-aware list →
+             absent FCM fires → parent views history
+```
+
+### Week 5 — Announcements + Complaints + Grades
+```
+Tasks:
+  → Announcements module:
+      POST with scope (school_wide / class) + target
+      GET filtered by user role
+      DELETE (admin can delete any)
+      FCM on new announcement
+  → Complaints module:
+      POST submit (parent)
+      GET all with filters (admin)
+      PUT assign to teacher + FCM
+      PUT status update with reply note
+  → Grades module:
+      POST/PUT/DELETE teacher modules
+      POST/PUT terms (admin)
+      PUT activate/lock term (admin)
+      GET/PUT grade sheet (draft)
+      POST publish → FCM to parents
+  → Terms: admin creates, teacher selects from dropdown
+
+Deliverable: Full complaints flow, grade publish with FCM
 ```
 
 ---
 
-## Phase 4 — Integration + Testing (Week 13)
+## Phase 3 — AI/RAG + Notifications + Lost & Found (Weeks 6–7)
 
+### Week 6 — RAG Pipeline + Lost & Found
 ```
 Tasks:
-    → Full end-to-end testing (all three apps)
-    → Performance testing (50-100 concurrent users)
-    → RAG accuracy testing (target: 60%+)
-    → Security testing (JWT, RBAC)
-    → Bug fixes
-    → User acceptance testing (5-10 test users)
+  → RAG module:
+      POST upload PDF (admin) → Supabase Storage
+      Background pipeline: pdf-parse → chunk → embed → pgvector
+      GET document list + processing status
+      PUT rename / DELETE document + vector chunks
+      POST query (parent) → embed → cosine search → GPT → answer
+      Fallback if confidence < threshold
+      GET public Q&A knowledge base
+  → Lost & Found module:
+      POST found item (teacher/admin) + FCM to parents with reports
+      GET items board (parent)
+      PUT collected
+      POST lost report (parent)
+      GET my reports
+      PUT recovered
 
-Deliverable: Stable, tested system
+Deliverable: Upload PDF → ask question → AI answers correctly
+             Lost item posted → parent with report gets FCM
+```
+
+### Week 7 — Notifications + Final Backend Testing
+```
+Tasks:
+  → Notifications module (GET list, mark read, read-all)
+  → All FCM trigger points verified and tested
+  → Supabase Realtime channels verified
+  → Jest unit tests for all modules
+  → API integration tests (Postman collection exported)
+  → Bug fixes and edge cases
+  → Rate limiting on auth endpoints
+  → Input sanitisation review
+
+Deliverable: Backend 100% complete, all endpoints tested
 ```
 
 ---
 
-## Phase 5 — Documentation + Submission (Week 14)
+## Phase 4 — Next.js Web Dashboard (Weeks 8–9)
+
+### Week 8 — Admin Dashboard
+```
+Tasks:
+  → shadcn/ui setup, Tailwind config, dark/light theme
+  → Auth pages: login, forgot password
+  → Pending approval screen (teacher/security waiting)
+  → Admin dashboard layout + sidebar navigation
+  → Users: pending list, approve + assign role, suspend, delete
+  → School Structure: grades, classes, student records, terms
+  → Student ID card export (QR + ID number)
+  → Gate oversight: log with filters (late, manual, reason), analytics
+  → Gate vs attendance discrepancy alerts
+  → Student unified profile page (gate + attendance + grades)
+  → Attendance: school-wide dashboard with grade/class filter
+  → AI absence alerts on dashboard
+  → Announcements: post with 3 targets, manage own, delete any teacher post
+  → RAG: upload + rename + delete documents, processing status
+  → Lost & Found: post items, delete any post, view parent reports
+
+Deliverable: Full admin workflow working in browser
+```
+
+### Week 9 — Teacher Dashboard + Security Gate Page
+```
+Tasks:
+  → Teacher dashboard layout (same shell as admin)
+  → My Classrooms: assigned class cards, student list, student details
+  → Parent link status indicator per student
+  → Attendance: create daily session, gate-aware screen, submit
+  → Attendance: view by date, search by student + date range
+  → Messages: inbox, thread view, send, AI draft
+  → Announcements: post class, view School Wide + Staff Only
+  → Grades: manage modules, grade entry table, draft/publish/unpublish
+  → Complaints: assigned list, FCM, update status with reply note
+  → Lost & Found: post item, manage own posts, mark collected
+  → Security guard: /gate page with QR + manual entry
+  → Next.js middleware: security role → /gate redirect
+  → Photo verification on manual entry
+
+Deliverable: Teacher full workflow + security gate page working
+```
+
+---
+
+## Phase 5 — Flutter Mobile App (Weeks 10–12)
+
+### Week 10 — Auth + Home + Gate
+```
+Tasks:
+  → Flutter project setup, dependencies installed
+  → MVVM folder structure created
+  → Splash screen (JWT check → home or login)
+  → Login screen + Register screen
+  → OTP screen (email + mobile fallback)
+  → Link child screen (Student ID entry)
+  → Confirm child screen ("Is this your child?")
+  → Home screen (announcement feed + quick stats)
+  → Child switcher header widget
+  → Bottom navigation bar (5 tabs)
+  → Theme system (5 colours + SharedPreferences)
+  → Gate log screen (IN/OUT history per day, filter by date)
+  → FCM setup (firebase_messaging)
+
+Deliverable: Login → link child → home screen → gate log working
+```
+
+### Week 11 — Attendance + Messages + AI Bot
+```
+Tasks:
+  → Attendance screen: history per subject, monthly summary
+  → Excuse note screen: submit for absent record
+  → Messages screen: inbox, thread list
+  → Message thread screen: send/receive + read receipts
+  → AI Bot screen: natural language question → answer display
+  → Public Q&A screen: browse past answered questions
+  → Low-confidence fallback display
+  → Notification panel screen: full list, mark read
+  → Tap-to-navigate from notification to relevant screen
+  → Supabase Realtime: notifications channel subscription
+
+Deliverable: Attendance, messaging, AI bot working end-to-end
+```
+
+### Week 12 — Complaints + Lost & Found + Profile
+```
+Tasks:
+  → Complaints screen: my list, status display
+  → Submit complaint screen: category + description form
+  → Complaint detail screen: full status trail + reply note
+  → Lost & Found screen: found items board + my reports tabs
+  → Report lost item screen: form + optional photo
+  → Announcement detail screen
+  → Profile screen: name/avatar, children list, grades, timetable
+  → Edit profile screen
+  → Change password screen
+  → Add child screen (repeat Student ID + OTP flow)
+  → Settings screen: biometric toggle, 5 themes, notification preferences
+  → Biometric login (local_auth)
+  → Logout + all-sessions logout
+
+Deliverable: Complete Flutter app, all features working
+```
+
+---
+
+## Phase 6 — Integration + Testing (Week 13)
 
 ```
 Tasks:
-    → Final project report
-    → Update all technical documents
-    → API documentation review
-    → Code cleanup + comments
-    → Deployment to Vercel + Railway
-    → Demo preparation for viva
-    → Presentation preparation
+  → End-to-end testing: full flows for all 4 roles
+  → Gate scan → FCM to parent (manual viva demo flow)
+  → Teacher marks absent → FCM to parent
+  → Admin uploads PDF → parent asks question → AI answers
+  → Teacher publishes grades → parent notified
+  → Performance: 50+ concurrent API requests
+  → Security: JWT verification, RBAC bypass attempts
+  → User acceptance: 3-5 test users if available
+  → Bug fixes
 
-Deliverable: Submission-ready project
+Deliverable: Stable, tested system ready for demo
+```
+
+---
+
+## Phase 7 — Documentation + Submission (Week 14)
+
+```
+Tasks:
+  → Final project report (dissertation)
+  → Update all 10 .md reference documents
+  → API documentation review (03-api-endpoints.md)
+  → Code cleanup, comments, unused code removed
+  → Deploy: Vercel (Next.js), Railway (Fastify), Supabase Cloud
+  → Viva demo script prepared (see 00-master-project-reference.md)
+  → Demo seed data loaded (test students, parents, teachers)
+  → Presentation slides prepared
+
+Deliverable: Submission-ready project + viva demo ready
 ```
 
 ---
@@ -249,24 +321,24 @@ Deliverable: Submission-ready project
 
 ```
 MUST COMPLETE (core marks):
-    1. Auth system
-    2. Academic profile
-    3. Ask question + RAG
-    4. Announcements
-    5. Complaint submission
-    6. QR Attendance
+  1. Auth system (all 4 roles)
+  2. Gate scan → parent FCM notification
+  3. Teacher marks attendance → absent FCM to parent
+  4. Parent-teacher messaging
+  5. Admin approval + school structure
+  6. RAG: upload PDF → parent asks question → AI answers
 
-SHOULD COMPLETE (extra marks):
-    7. Push notifications
-    8. AI Chat
-    9. Admin analytics/charts
-    10. Settings full implementation
+SHOULD COMPLETE:
+  7. Grades: enter + publish
+  8. Complaints full flow
+  9. All-sessions logout
+  10. Admin discrepancy alerts + absence alerts
 
 NICE TO HAVE (if time allows):
-    11. Biometric login
-    12. Account expiry flow
-    13. Language support
-    14. Theme system
+  11. Lost & Found
+  12. Gate analytics dashboard
+  13. AI message drafting
+  14. Student ID card export
 ```
 
 ---
@@ -274,9 +346,11 @@ NICE TO HAVE (if time allows):
 ## Risk Register
 
 | Risk | Impact | Mitigation |
-|------|--------|-----------|
-| RAG accuracy below 60% | High | Test early in Week 4, tune chunking strategy |
-| OpenAI API costs | Medium | Use gpt-4o-mini, set usage limits |
-| Flutter-backend integration issues | Medium | Test API in Postman before Flutter |
-| Time overrun on backend | High | Prioritize must-have features strictly |
-| Firebase FCM setup complexity | Low | Follow official Flutter Firebase docs |
+|------|--------|------------|
+| RAG confidence too low | High | Test with real school PDFs early in Week 6, tune chunk size |
+| OpenAI API costs | Medium | gpt-4o-mini, set monthly spend limit, cache frequent answers |
+| FCM delivery issues | Medium | Test on real Android + iOS devices, not emulator |
+| Flutter-backend integration | Medium | Test all API endpoints in Postman before Flutter |
+| Gate page Next.js middleware | Low | Test role-based redirect early in Week 9 |
+| Time overrun on Flutter | High | Flutter is Week 10-12, keep Phase 4 tight |
+| Supabase free tier limits | Low | Monitor storage and row counts during dev |
