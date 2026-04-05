@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:universe_app/core/constants/app_routes.dart';
+import 'package:universe_app/features/auth/viewmodels/auth_viewmodel.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,23 +14,112 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _studentIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
 
   @override
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
+    _studentIdController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
-  void _onRegisterPressed() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registration flow will be connected soon.')),
+  Future<void> _onRegisterPressed() async {
+    final String fullName = _usernameController.text.trim();
+    final String email = _emailController.text.trim();
+    final String studentId = _studentIdController.text.trim();
+    final String password = _passwordController.text;
+    final String confirmPassword = _confirmPasswordController.text;
+
+    if (fullName.isEmpty || email.isEmpty || studentId.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields.')),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match.')),
+      );
+      return;
+    }
+
+    final AuthViewModel viewModel = context.read<AuthViewModel>();
+    final bool requested = await viewModel.requestParentRegistrationOtp(
+      fullName: fullName,
+      email: email,
+      password: password,
+      studentIdNo: studentId,
     );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (!requested) {
+      final String message = viewModel.errorMessage ?? 'Registration failed.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('OTP sent. Please check your email.')),
+    );
+
+    _otpController.clear();
+    final String? otp = await showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Enter OTP'),
+          content: TextField(
+            controller: _otpController,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            decoration: const InputDecoration(
+              hintText: '6-digit code',
+              counterText: '',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(_otpController.text.trim()),
+              child: const Text('Verify'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || otp == null || otp.isEmpty) {
+      return;
+    }
+
+    final bool success = await viewModel.verifyRegistrationOtp(otp: otp);
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      context.go(AppRoutes.dashboard);
+      return;
+    }
+
+    final String message = viewModel.errorMessage ?? 'OTP verification failed.';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   InputDecoration _fieldDecoration(String hintText) {
@@ -123,6 +214,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 10),
                     TextField(
+                      controller: _studentIdController,
+                      textInputAction: TextInputAction.next,
+                      decoration: _fieldDecoration('Student ID (e.g. SCH-2026-0042)'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
                       controller: _passwordController,
                       obscureText: true,
                       textInputAction: TextInputAction.next,
@@ -139,24 +236,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 24),
                     SizedBox(
                       height: 56,
-                      child: ElevatedButton(
-                        onPressed: _onRegisterPressed,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3C4CF4),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                        ),
-                        child: const Text(
-                          'Register',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'Plus Jakarta Sans',
-                          ),
-                        ),
+                      child: Consumer<AuthViewModel>(
+                        builder: (context, viewModel, child) {
+                          return ElevatedButton(
+                            onPressed: viewModel.isLoading ? null : _onRegisterPressed,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3C4CF4),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(28),
+                              ),
+                            ),
+                            child: viewModel.isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Register',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w700,
+                                      fontFamily: 'Plus Jakarta Sans',
+                                    ),
+                                  ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 22),

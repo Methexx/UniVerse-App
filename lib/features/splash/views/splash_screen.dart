@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:universe_app/core/constants/app_routes.dart';
 import 'package:universe_app/core/constants/app_strings.dart';
+import 'package:universe_app/features/auth/viewmodels/auth_viewmodel.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,11 +20,24 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _redirectTimer = Timer(const Duration(milliseconds: 900), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bootstrap();
+    });
+  }
+
+  Future<void> _bootstrap() async {
+    final AuthViewModel authViewModel = context.read<AuthViewModel>();
+    final bool isLoggedIn = await authViewModel.restoreSession();
+
+    if (!mounted) {
+      return;
+    }
+
+    _redirectTimer = Timer(const Duration(milliseconds: 600), () {
       if (!mounted) {
         return;
       }
-      context.go(AppRoutes.welcome);
+      context.go(isLoggedIn ? AppRoutes.dashboard : AppRoutes.welcome);
     });
   }
 
