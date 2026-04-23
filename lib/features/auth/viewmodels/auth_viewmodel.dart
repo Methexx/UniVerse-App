@@ -10,6 +10,7 @@ class AuthViewModel extends BaseViewModel {
   UserModel? _currentUser;
   UserModel? get currentUser => _currentUser;
   String? _pendingRegistrationEmail;
+  String? _pendingForgotPasswordEmail;
 
   bool get isAuthenticated => _currentUser != null;
 
@@ -80,6 +81,48 @@ class AuthViewModel extends BaseViewModel {
     try {
       _currentUser = await _repository.verifyRegistrationOtp(email: email, otp: otp);
       _pendingRegistrationEmail = null;
+      return true;
+    } catch (error) {
+      setError(error.toString().replaceFirst('Exception: ', ''));
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  Future<bool> requestForgotPasswordOtp({required String email}) async {
+    setError(null);
+    setLoading(true);
+
+    try {
+      await _repository.requestPasswordResetOtp(email: email);
+      _pendingForgotPasswordEmail = email.trim();
+      return true;
+    } catch (error) {
+      setError(error.toString().replaceFirst('Exception: ', ''));
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  Future<bool> resetPassword({required String otp, required String newPassword}) async {
+    final String? email = _pendingForgotPasswordEmail;
+    if (email == null || email.isEmpty) {
+      setError('Please request OTP first.');
+      return false;
+    }
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      await _repository.resetPassword(
+        email: email,
+        otp: otp,
+        newPassword: newPassword,
+      );
+      _pendingForgotPasswordEmail = null;
       return true;
     } catch (error) {
       setError(error.toString().replaceFirst('Exception: ', ''));

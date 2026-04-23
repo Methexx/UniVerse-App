@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
 import 'package:universe_app/core/constants/app_routes.dart';
+import 'package:universe_app/features/auth/views/forgot_password_screen.dart';
 import 'package:universe_app/features/auth/views/login_screen.dart';
+import 'package:universe_app/features/auth/views/registration_otp_screen.dart';
 import 'package:universe_app/features/dashboard/views/dashboard_screen.dart';
 import 'package:universe_app/features/splash/views/splash_screen.dart';
 import 'package:universe_app/features/splash/views/welcome_screen.dart';
@@ -25,6 +27,14 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.register,
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.registerOtp,
+        builder: (context, state) => const RegistrationOtpScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: AppRoutes.dashboard,

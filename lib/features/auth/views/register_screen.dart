@@ -18,7 +18,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
 
   @override
   void dispose() {
@@ -27,7 +26,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _studentIdController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _otpController.dispose();
     super.dispose();
   }
 
@@ -73,53 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('OTP sent. Please check your email.')),
     );
-
-    _otpController.clear();
-    final String? otp = await showDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Enter OTP'),
-          content: TextField(
-            controller: _otpController,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
-            decoration: const InputDecoration(
-              hintText: '6-digit code',
-              counterText: '',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(_otpController.text.trim()),
-              child: const Text('Verify'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (!mounted || otp == null || otp.isEmpty) {
-      return;
-    }
-
-    final bool success = await viewModel.verifyRegistrationOtp(otp: otp);
-    if (!mounted) {
-      return;
-    }
-
-    if (success) {
-      context.go(AppRoutes.dashboard);
-      return;
-    }
-
-    final String message = viewModel.errorMessage ?? 'OTP verification failed.';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    context.go(AppRoutes.registerOtp);
   }
 
   InputDecoration _fieldDecoration(String hintText) {

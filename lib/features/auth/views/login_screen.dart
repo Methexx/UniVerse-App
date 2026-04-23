@@ -131,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Handle forgot password
+                      context.go(AppRoutes.forgotPassword);
                     },
                     child: const Text(
                       'Forgot Password?',

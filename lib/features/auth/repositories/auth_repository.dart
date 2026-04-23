@@ -15,6 +15,12 @@ abstract class AuthRepository {
     required String email,
     required String otp,
   });
+  Future<void> requestPasswordResetOtp({required String email});
+  Future<void> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  });
   Future<UserModel?> restoreSession();
   Future<void> logout();
 }
@@ -26,6 +32,14 @@ class ApiAuthRepository implements AuthRepository {
 
   final Dio _dio;
   final SecureStorageService _secureStorage;
+
+  UserModel _requireParent(Map<String, dynamic> userJson, {required String action}) {
+    final UserModel user = UserModel.fromJson(userJson);
+    if (user.role != 'parent') {
+      throw Exception('This mobile app is for parent accounts only. Please use a parent account to $action.');
+    }
+    return user;
+  }
 
   String _extractMessage(DioException error) {
     final dynamic data = error.response?.data;
@@ -83,8 +97,9 @@ class ApiAuthRepository implements AuthRepository {
       throw Exception('Invalid login response from server.');
     }
 
+    final UserModel user = _requireParent(userJson, action: 'sign in');
     await _secureStorage.saveAccessToken(token);
-    return UserModel.fromJson(userJson);
+    return user;
   }
 
   @override
@@ -127,8 +142,33 @@ class ApiAuthRepository implements AuthRepository {
       throw Exception('Invalid OTP verification response from server.');
     }
 
+    final UserModel user = _requireParent(userJson, action: 'complete registration');
     await _secureStorage.saveAccessToken(token);
-    return UserModel.fromJson(userJson);
+    return user;
+  }
+
+  @override
+  Future<void> requestPasswordResetOtp({required String email}) async {
+    await _post(
+      ApiEndpoints.forgotPassword,
+      data: {'email': email.trim()},
+    );
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    await _post(
+      ApiEndpoints.resetPassword,
+      data: {
+        'email': email.trim(),
+        'otp': otp.trim(),
+        'new_password': newPassword,
+      },
+    );
   }
 
   @override
@@ -153,8 +193,14 @@ class ApiAuthRepository implements AuthRepository {
         return null;
       }
 
+      final UserModel user = UserModel.fromJson(userJson);
+      if (user.role != 'parent') {
+        await _secureStorage.clearAccessToken();
+        return null;
+      }
+
       await _secureStorage.saveAccessToken(newToken);
-      return UserModel.fromJson(userJson);
+      return user;
     } on Exception {
       await _secureStorage.clearAccessToken();
       return null;
