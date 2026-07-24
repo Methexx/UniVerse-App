@@ -1,4 +1,4 @@
- # Universe App
+  # Universe App
   
 Universe App is a cross-platform Flutter application. This repository contains the source for mobile, web, and desktop builds from a single codebase.
 
